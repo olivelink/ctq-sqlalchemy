@@ -1,5 +1,5 @@
-from ctx import acquire
-from ctx import resource
+from ctq import acquire
+from ctq import resource
 import sqlalchemy
 
 
