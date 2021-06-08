@@ -18,4 +18,5 @@ setup(name='ctq-sqlalchemy',
           'setuptools',
           'ctq',
           'sqlalchemy',
+          'sqlalchemy_utils',
       ])
