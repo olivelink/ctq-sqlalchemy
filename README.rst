@@ -50,7 +50,7 @@ using the ``ctq.acqurie`` method.::
     >>> site = Site()
     >>> site.db_session = create_session()
     >>> site['docs']
-    <ctq_sqlalchemy.collection.Docs ...>
+    <ctq_sqlalchemy.collection_resource.Docs ...>
 
 This collection object implements some of the standard syntax that you would
 use with SQLAlchemy. Namly ``select()`` and ``execute()``
@@ -69,6 +69,6 @@ bound to the collection object.
     >>> doc.__name__
     'intro'
     >>> doc.__parent__
-    <ctq_sqlalchemy.collection.Docs ...>
+    <ctq_sqlalchemy.collection_resource.Docs ...>
     >>> doc.__parent__.__parent__
     <Site ...>
