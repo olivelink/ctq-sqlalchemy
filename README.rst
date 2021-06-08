@@ -57,7 +57,7 @@ use with SQLAlchemy. Namly ``select()`` and ``execute()``
 
 Select returns a selectable from SQLAlchemy with the ORM object already selected.
 ``execute()`` returns an iterator which yields the ORM objects from ``select()``
-bound to the collection object.
+bound to the collection object.::
 
     >>> docs = site['docs']
     >>> stmt = docs.select().where(Document.document_id == 'intro')
@@ -72,3 +72,11 @@ bound to the collection object.
     <ctq_sqlalchemy.collection_resource.Docs ...>
     >>> doc.__parent__.__parent__
     <Site ...>
+
+Because ctq-sqlalchemy auto detects the primary key of the object the items
+also become traversable::
+
+    >>> site['docs']['intro']
+    <Document ...>
+    >>> site['docs']['conclusion'].title
+    'Summing up...'

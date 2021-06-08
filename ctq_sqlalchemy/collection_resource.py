@@ -13,6 +13,7 @@ def collection_resource(name, child_type, **kwargs):
         (Collection,),
         {
             "child_type": child_type,
+            "default_order_by": _default_order_by(child_type),
             "name_from_child": _name_from_child_method(child_type),
             "id_from_name": _id_from_name_method(child_type),
             **kwargs,
@@ -58,3 +59,6 @@ def _id_from_name_method(child_type):
         }
 
     return id_from_name
+
+def _default_order_by(child_type):
+    return sqlalchemy.inspect(child_type).primary_key

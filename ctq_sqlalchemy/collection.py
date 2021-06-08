@@ -1,57 +1,24 @@
 from ctq import acquire
-from ctq import resource
+from ctq import resource_path_names
 
 import sqlalchemy
-import sqlalchemy_utils.types
 
 
-def collection_resource(name, child_type, **kwargs):
 
-    collection_type = type(  # Construct an anonymous class
-        _normalise_type_name(name),
-        (Collection,),
-        {
-            "child_type": child_type,
-            "name_from_child": _name_from_child_method(child_type),
-            **kwargs,
-        },
-    )
-    factory = lambda self: collection_type()
-    resource_property = resource(name)(factory)
-    return resource_property
-
-
-def _normalise_type_name(name):
-    parts = name.replace("-", "_").split("_")
-    name = "".join(p.title() for p in parts)
-    return name
-
-def _name_from_child_method(child_type):
-    primary_key = sqlalchemy.inspect(child_type).primary_key
-    assert len(primary_key) == 1
-    field = primary_key[0]
-    type_ = field.type
-    if isinstance(type_, sqlalchemy.types.String):
-        cast = str
-    elif isinstance(type_, sqlalchemy_utils.types.uuid.UUIDType):
-        cast = UUID
-    elif isinstance(type_, sqlalchemy.types.Integer):
-        cast = str
-    else:
-        NotImplementedError()
-
-    def name_from_child(self, child):
-        value = getattr(child, field.name)
-        return cast(value)
-
-    return name_from_child
 
 class Collection(object):
 
     child_type = None
+    default_order_by = None
 
     def select(self):
         return sqlalchemy.select(self.child_type)
+
+    def select_ordered(self):
+        return (
+            self.select()
+            .order_by(self.default_order_by)
+        )
 
     def execute(self, stmt):
         session = acquire(self).db_session
@@ -59,8 +26,37 @@ class Collection(object):
         wrapped_results = CollectionResultWrapper(result, self)
         return wrapped_results
 
-    
+    def get_child(self, name, default=None):
+        id = self.id_from_name(name)
+        stmt = (
+            self.select()
+            .filter_by(**id)
+        )
+        result = self.execute(stmt).one_or_none()
+        if result is None:
+            return default
+        return result
 
+    def __getitem__(self, key):
+        try:
+            return super().__getitem__(key)
+        except (KeyError, AttributeError) as err:
+            child_path_names = resource_path_names(self) + (key,)
+            try:
+                cached_child = acquire(self).resource_cache_get(child_path_names)
+            except AttributeError:
+                cached_child = None
+            if cached_child is not None:
+                return cached_child
+            child = self.get_child(key)
+            if child is not None:
+                try:
+                    acquire(self).resource_cache_set(child_path_names, child)
+                except AttributeError:
+                    pass
+                return child
+            raise KeyError(key) from err
+    
 
 class CollectionResultWrapper(object):
     def __init__(self, result, collection: Collection):
@@ -71,8 +67,19 @@ class CollectionResultWrapper(object):
         name_from_child = self.collection.name_from_child
         for row in self.inner_result:
             child = row[0]
-            child.__parent__ = self.collection
-            name = name_from_child(child)
-            if name:
-                child.__name__ = name
+            self.bind(child)
             yield child
+    
+    def one_or_none(self):
+        result = self.inner_result.one_or_none()
+        if result is None:
+            return None
+        child = result[0]
+        self.bind(child)
+        return child
+
+    def bind(self, child):
+        child.__parent__ = self.collection
+        name = self.collection.name_from_child(child)
+        if name:
+            child.__name__ = name
