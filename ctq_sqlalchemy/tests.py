@@ -5,45 +5,40 @@ Auto discover tests in this package
 
 import doctest
 import fnmatch
+import os
 import os.path
 import pkg_resources
 import unittest
 
 
-PACKAGE_NAME = "ctq_sqlalchemy"
-
-
-def test_suite_test_cases(package_name=PACKAGE_NAME, pattern="*_test.py"):
+def test_suite_test_cases(pattern="*_test.py"):
     """Create the test suite used for the test runner
 
     Discover tests and load them into a test suite.
 
     Args:
-        package_name (str): The package we are loading a test suite for
         pattern (str): The glob pattern used for test discovery
 
     Returns:
         TestSuite: The test suite to be used for the test runner
     """
+    top_level_dir = os.path.dirname(__file__)
 
     test_loader = unittest.TestLoader()
     suite = test_loader.discover(
-        package_name, pattern=pattern, top_level_dir='ctq_sqlalchemy/',
+        top_level_dir, pattern=pattern, top_level_dir=top_level_dir
     )
 
     return suite
 
 
-def test_suite_doctest_folder(
-    package_name=PACKAGE_NAME, path="doctests", pattern="*_test.rst"
-):
+def test_suite_doctest_folder(path="doctests", pattern="*_test.rst"):
     """Create an test suite from a doctest folder
 
     These are heavier weight tests designed to make sure all the components
     are working together.
 
     Args:
-        package_name (str): The package we are loading a test suite for
         path (str): Where to look for doctests
         pattern (str): The glob pattern used for test discovery
 
@@ -51,8 +46,8 @@ def test_suite_doctest_folder(
         TestSuite: The test suite to be used for the test runner
     """
     doctest_files = []
-    base_dir = pkg_resources.resource_filename(package_name, path)
-    for item_name in pkg_resources.resource_listdir(package_name, path):
+    base_dir = os.path.join(os.path.dirname(__file__), path)
+    for item_name in os.listdir(base_dir):
         if fnmatch.fnmatch(item_name, pattern):
             doctest_file = os.path.join(base_dir, item_name)
             doctest_files.append(doctest_file)
@@ -67,23 +62,23 @@ def test_suite_doctest_folder(
     return suite
 
 
-def test_suite(package_name=PACKAGE_NAME):
+def test_suite():
     """The default test suite. Does unit testing."""
     return unittest.TestSuite(
         [
-            test_suite_test_cases(package_name, pattern="*_test.py"),
+            test_suite_test_cases(pattern="*_test.py"),
             test_suite_doctest_folder(),
         ]
     )
 
 
-def integration_test_suite(package_name=PACKAGE_NAME):
+def integration_test_suite():
     """Do integration testing"""
     return unittest.TestSuite(
         [
-            test_suite_test_cases(package_name, pattern="*_inttest.py"),
+            test_suite_test_cases(pattern="*_inttest.py"),
             test_suite_doctest_folder(
-                package_name, path="integration_test", pattern="*_inttest.rst"
+                path="integration_test", pattern="*_inttest.rst"
             ),
         ]
     )
