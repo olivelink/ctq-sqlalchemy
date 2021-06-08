@@ -80,3 +80,4 @@ also become traversable::
     <Document ...>
     >>> site['docs']['conclusion'].title
     'Summing up...'
+    >>> site['docs']['conslusion'] is site['docs']['conslusion']
