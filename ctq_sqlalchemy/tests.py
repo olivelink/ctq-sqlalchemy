@@ -7,7 +7,6 @@ import doctest
 import fnmatch
 import os
 import os.path
-import pkg_resources
 import unittest
 
 
@@ -77,8 +76,6 @@ def integration_test_suite():
     return unittest.TestSuite(
         [
             test_suite_test_cases(pattern="*_inttest.py"),
-            test_suite_doctest_folder(
-                path="integration_test", pattern="*_inttest.rst"
-            ),
+            test_suite_doctest_folder(path="integration_test", pattern="*_inttest.rst"),
         ]
     )

@@ -1,12 +1,13 @@
 from ctq import acquire
 from ctq import resource
+
 import sqlalchemy
 
 
 def collection_resource(name, child_type, **kwargs):
     type_name = normalise_type_name(name)
     collection_type = type(  # Construct an anonymous class
-        name,
+        type_name,
         (Collection,),
         {
             "child_type": child_type,
@@ -18,15 +19,9 @@ def collection_resource(name, child_type, **kwargs):
 
 
 def normalise_type_name(name):
-    parts = (
-        name
-        .replace('-', '_')
-        .split('_')
-    )
-    name = ''.join(
-        p.title() for p in parts
-    )
-    return 'ctq_sqlalchemy.collection.anonymous.' + name
+    parts = name.replace("-", "_").split("_")
+    name = "".join(p.title() for p in parts)
+    return "ctq_sqlalchemy.collection.anonymous." + name
 
 
 class Collection(object):
@@ -43,9 +38,7 @@ class Collection(object):
         return wrapped_results
 
 
-
 class CollectionResultWrapper(object):
-
     def __init__(self, result, collection: Collection):
         self.inner_result = result
         self.collection = collection
@@ -58,4 +51,3 @@ class CollectionResultWrapper(object):
             name = name_from_child(child)
             if name:
                 child.__name__ = name
-
