@@ -90,7 +90,7 @@ class Collection(object):
         acquire(self).db_session.delete(child)
         emit(self, "after-delete", {"path": child_path_names})
     
-    def edit_child(child, **kwargs):
+    def edit(child, **kwargs):
         old_name = self.name_from_child(child)
         emit(child, "before-edit", {"kwargs": kwargs})
         changes = {}
