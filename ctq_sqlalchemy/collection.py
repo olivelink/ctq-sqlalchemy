@@ -6,8 +6,6 @@ from ctq import emit
 import sqlalchemy
 
 
-
-
 class Collection(object):
 
     child_type = None
@@ -90,14 +88,17 @@ class Collection(object):
         acquire(self).db_session.delete(child)
         emit(self, "after-delete", {"path": child_path_names})
     
-    def edit(child, **kwargs):
+    def edit(self, child, **kwargs):
         old_name = self.name_from_child(child)
         emit(child, "before-edit", {"kwargs": kwargs})
         changes = {}
         for key, value in kwargs.items():
-            old_value = getattr(key)
+            old_value = getattr(child, key)
             if old_value != value:
-                changes[key] = value
+                changes[key] = {
+                    "old": old_value,
+                    "new": value,
+                }
                 setattr(child, key, value)
         name = self.name_from_child(child)
         child.__name__ = name
@@ -105,14 +106,23 @@ class Collection(object):
             base_path_names = resource_path_names(self)
             old_path_names = base_path_names + (old_name,)
             path_names = base_path_names + (name,)
-            emit(child, "after-edit", {
-                "kwargs": kwargs,
-                "changes": changes,
-            })
+            try:
+                resource_cache_set = acquire(self).resource_cache_set
+                resource_cache_set(old_path_names, None)
+                resource_cache_set(path_names, child)
+            except AttributeError:
+                pass
             emit(child, "moved", {
                 "old_path": old_path_names,
             })
+        emit(child, "after-edit", {
+            "kwargs": kwargs,
+            "changes": changes,
+        })
     
+    def rename(self, child, name):
+        id = self.id_from_name(name)
+        self.edit(child, **id)
 
 class CollectionResultWrapper(object):
     def __init__(self, result, collection: Collection):

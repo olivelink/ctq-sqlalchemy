@@ -89,10 +89,10 @@ new objects quickly.::
     'First Story'
     >>> story is docs['story']
     True
+    >>> site.db_session.commit()
 
 The collection object also supports the del operation in python.
 
-    >>> site.db_session.commit()
     >>> site = Site()
     >>> site.db_session = create_session()
     >>> docs = site['docs']
@@ -101,3 +101,38 @@ The collection object also supports the del operation in python.
     Traceback (most recent call last):
     ...
     KeyError: 'story'
+
+Now to editing. ctq-sqlalchemy support a range of events that are emited during
+verious resource operations. Here is an example of using events with the
+edit method on the collection.::
+
+    >>> from ctq import handle
+
+    >>> class Site(Resourceful):
+    ...
+    ...     get_docs = collection_resource('docs', Document, cache_max_size=100)
+    ...
+    ...     @handle("after-edit")
+    ...     def on_after_edit(self, event):
+    ...         print(f"{event.target.document_id} was edited! Changes: {event.data['changes']}")
+    ...
+    ...     @handle("moved")
+    ...     def on_moved(self, event):
+    ...         print(f"Resource was moved: from {event.data['old_path'][-1]} to {event.target.__name__}")
+    ...
+    
+    >>> site = Site()
+    >>> site.db_session = create_session()
+    >>> docs = site['docs']
+    >>> docs.edit(docs['intro'], title="Updated intro!")
+    intro was edited! Changes: {'title': {'old': 'Welcome...', 'new': 'Updated intro!'}}
+    >>> docs.edit(docs['intro'], document_id='introduction')
+    Resource was moved: from intro to introduction
+    introduction was edited! Changes: {'document_id': {'old': 'intro', 'new': 'introduction'}}
+
+There is a convienence method ``rename`` which performes an edit based on primary key introspection.
+
+    >>> docs.rename(docs['introduction'], "preface")
+    Resource was moved: from introduction to preface
+    preface was edited! Changes: {'document_id': {'old': 'introduction', 'new': 'preface'}}    
+
