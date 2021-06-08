@@ -40,7 +40,7 @@ We can create a site object with a collection of these documents using the
     
     >>> class Site(Resourceful):
     ...
-    ...     get_docs = collection_resource('docs', Document)
+    ...     get_docs = collection_resource('docs', Document, cache_max_size=100)
 
 This creates a resouce object that can be traversed at the item name 'docs'
 that can be used to manage the ORM objects from the table ``document``. We
@@ -80,4 +80,24 @@ also become traversable::
     <Document ...>
     >>> site['docs']['conclusion'].title
     'Summing up...'
-    >>> site['docs']['conslusion'] is site['docs']['conslusion']
+
+The collection object has a convienence method ``add(...)`` which allows creating
+new objects quickly.::
+
+    >>> story = docs.add("story", title="First Story")
+    >>> story.title
+    'First Story'
+    >>> story is docs['story']
+    True
+
+The collection object also supports the del operation in python.
+
+    >>> site.db_session.commit()
+    >>> site = Site()
+    >>> site.db_session = create_session()
+    >>> docs = site['docs']
+    >>> del docs['story']
+    >>> docs['story']
+    Traceback (most recent call last):
+    ...
+    KeyError: 'story'

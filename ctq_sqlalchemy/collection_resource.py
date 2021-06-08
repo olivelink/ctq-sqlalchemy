@@ -1,16 +1,22 @@
 from .collection import Collection
 from ctq import resource
+from ctq import ResourceCache
 from uuid import UUID
 
 import sqlalchemy
 import sqlalchemy_utils.types
 
 
-def collection_resource(name, child_type, **kwargs):
+def collection_resource(name, child_type, cache_max_size=0, **kwargs):
+
+    base_types = [Collection]
+
+    if cache_max_size > 0:
+        base_types.append(ResourceCache)
 
     collection_type = type(  # Construct an anonymous class
         _normalise_type_name(name),
-        (Collection,),
+        tuple(base_types),
         {
             "child_type": child_type,
             "default_order_by": _default_order_by(child_type),

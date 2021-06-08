@@ -1,5 +1,7 @@
+from sqlalchemy.sql.schema import PrimaryKeyConstraint
 from ctq import acquire
 from ctq import resource_path_names
+from ctq import emit
 
 import sqlalchemy
 
@@ -57,29 +59,100 @@ class Collection(object):
                 return child
             raise KeyError(key) from err
     
+    def add(self, _name=None, /, **kwargs):
+        if _name is not None:
+            kwargs = {
+                **self.id_from_name(_name),
+                **kwargs
+            }
+        emit(self, "before-add", {"kwargs": kwargs})
+        child = self.child_type(**kwargs)
+        acquire(self).db_session.add(child)
+        child.__parent__ = self
+        name = self.name_from_child(child)
+        child.__name__ = name
+        child_path_names = resource_path_names(child)
+        try:
+            acquire(self).resource_cache_set(child_path_names, child)
+        except AttributeError:
+            pass
+        emit(child, "after-add")
+        return child
+
+    def __delitem__(self, key):
+        child = self[key]
+        child_path_names = resource_path_names(child)
+        emit(child, "before-delete")
+        try:
+            acquire(self).resource_cache_set(child_path_names, None)
+        except AttributeError:
+            pass
+        acquire(self).db_session.delete(child)
+        emit(self, "after-delete", {"path": child_path_names})
+    
+    def edit_child(child, **kwargs):
+        old_name = self.name_from_child(child)
+        emit(child, "before-edit", {"kwargs": kwargs})
+        changes = {}
+        for key, value in kwargs.items():
+            old_value = getattr(key)
+            if old_value != value:
+                changes[key] = value
+                setattr(child, key, value)
+        name = self.name_from_child(child)
+        child.__name__ = name
+        if old_name != name:
+            base_path_names = resource_path_names(self)
+            old_path_names = base_path_names + (old_name,)
+            path_names = base_path_names + (name,)
+            emit(child, "after-edit", {
+                "kwargs": kwargs,
+                "changes": changes,
+            })
+            emit(child, "moved", {
+                "old_path": old_path_names,
+            })
+    
 
 class CollectionResultWrapper(object):
     def __init__(self, result, collection: Collection):
         self.inner_result = result
         self.collection = collection
+        self.name_from_child = collection.name_from_child
+        self.cache_get = getattr(acquire(collection), "resource_cache_get", self.cache_get)
+        self.cache_set = getattr(acquire(collection), "resource_cache_set", self.cache_set)
+        self.collection_path_names = resource_path_names(collection)
 
     def __iter__(self):
         name_from_child = self.collection.name_from_child
         for row in self.inner_result:
-            child = row[0]
-            self.bind(child)
+            child = self.child_from_row(row)
             yield child
     
     def one_or_none(self):
-        result = self.inner_result.one_or_none()
-        if result is None:
+        row = self.inner_result.one_or_none()
+        if row is None:
             return None
-        child = result[0]
-        self.bind(child)
-        return child
+        return self.child_from_row(row)
 
-    def bind(self, child):
-        child.__parent__ = self.collection
-        name = self.collection.name_from_child(child)
-        if name:
-            child.__name__ = name
+    def child_from_row(self, row):
+        child = row[0]
+        name = self.name_from_child(child)
+        if name is not None:
+            child_path_names = self.collection_path_names + (name,)
+            cached_child = self.cache_get(child_path_names)
+            if cached_child is not None:
+                return cached_child
+            child.__name__= name
+            child.__parent__ = self.collection
+            self.cache_set(child_path_names, child)
+            return child
+        else:
+            child.__parent__ = self.collection
+            return child
+
+    def cache_get(self, key):
+        return None
+
+    def cache_set(self, key, value):
+        pass
