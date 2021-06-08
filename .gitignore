@@ -1,0 +1,27 @@
+# Template Ignore
+
+*.egg-info
+*.pyc
+*.pyo
+*id_rsa*
+/.coverage
+/.coveragerc
+/.installed.cfg
+/.isort.cfg
+/.mr.developer.cfg
+/.undodir/
+/README.html
+/Session.vim
+/bin/*
+/buildout-picked.cfg
+/develop-eggs/
+/eggs/
+/extends-cache/
+/parts/
+/docs/.doctrees/
+/htmlcov/
+/lib
+/lib64
+/pyvenv.cfg
+/build
+/dist
