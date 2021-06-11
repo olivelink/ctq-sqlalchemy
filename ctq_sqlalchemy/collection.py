@@ -147,6 +147,7 @@ class CollectionResultWrapper(object):
 
     def child_from_row(self, row):
         child = row[0]
+        child.__parent__ = self.collection
         name = self.name_from_child(child)
         if name is not None:
             child_path_names = self.collection_path_names + (name,)
@@ -154,11 +155,9 @@ class CollectionResultWrapper(object):
             if cached_child is not None:
                 return cached_child
             child.__name__= name
-            child.__parent__ = self.collection
             self.cache_set(child_path_names, child)
             return child
         else:
-            child.__parent__ = self.collection
             return child
 
     def cache_get(self, key):
