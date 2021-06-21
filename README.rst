@@ -50,7 +50,7 @@ using the ``ctq.acqurie`` method.::
     >>> site = Site()
     >>> site.db_session = create_session()
     >>> site['docs']
-    <ctq_sqlalchemy.collection_resource.Docs ...>
+    <ctq_sqlalchemy.collection.Docs ...>
 
 This collection object implements some of the standard syntax that you would
 use with SQLAlchemy. Namly ``select()`` and ``execute()``
@@ -69,7 +69,7 @@ bound to the collection object.::
     >>> doc.__name__
     'intro'
     >>> doc.__parent__
-    <ctq_sqlalchemy.collection_resource.Docs ...>
+    <ctq_sqlalchemy.collection.Docs ...>
     >>> doc.__parent__.__parent__
     <Site ...>
 
@@ -136,3 +136,14 @@ There is a convienence method ``rename`` which performes an edit based on primar
     Resource was moved: from introduction to preface
     preface was edited! Changes: {'document_id': {'old': 'introduction', 'new': 'preface'}}    
 
+Rolloing your own collection
+============================
+
+You can create your own collection by using the ``CollectionType`` meta class::
+
+    >>> from ctq_sqlalchemy import CollectionType
+
+    >>> class CustomDocs(metaclass=CollectionType):
+    ...     child_type = Document
+
+    >>> docs = CustomDocs()
