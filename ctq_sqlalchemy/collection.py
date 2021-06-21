@@ -16,11 +16,16 @@ class CollectionType(type):
         child_type = content["child_type"]
         assert child_type is not None
         primary_key = sqlalchemy.inspect(child_type).primary_key
-        name_from_child = generate_name_from_child_method(primary_key)
+        key = content.get("key", None)
+        if key is None:
+            assert len(primary_key) == 1
+            key = primary_key[0]
+        name_from_child = generate_name_from_child_method(key)
         id_from_name = generate_id_from_name_method(primary_key)
         content = {
             "_primary_key": primary_key,
             "_default_order_by": primary_key,
+            "key": key,
             "name_from_child": name_from_child,
             "id_from_name": id_from_name,
             **content
@@ -50,11 +55,10 @@ def collection_resource(name, child_type, cache_max_size=0, **kwargs):
     return resource_property
 
 
-def generate_name_from_child_method(primary_key):
-    assert len(primary_key) == 1
-    
+def generate_name_from_child_method(key):
+    field_name = key.name
     def name_from_child(self, child):
-        value = getattr(child, primary_key[0].name)
+        value = getattr(child, field_name)
         return str(value)
 
     return name_from_child
@@ -73,9 +77,11 @@ def generate_id_from_name_method(primary_key):
     else:
         NotImplementedError()
 
+    field_name = field.name
+
     def id_from_name(self, name):
         return {
-            field.name: cast(name),
+            field_name: cast(name),
         }
 
     return id_from_name
