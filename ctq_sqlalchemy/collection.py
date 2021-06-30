@@ -15,17 +15,18 @@ class CollectionType(type):
 
         child_type = content["child_type"]
         assert child_type is not None
-        primary_key = sqlalchemy.inspect(child_type).primary_key
+        insp = sqlalchemy.inspect(child_type)
+        primary_key = insp.primary_key
         key = content.get("key", None)
         if key is None:
             assert len(primary_key) == 1
             key = primary_key[0]
-        name_from_child = generate_name_from_child_method(key)
+        key_prop = insp.get_property_by_column(key)
+        key_field_name = key_prop.key
+        name_from_child = generate_name_from_child_method(key_field_name)
         id_from_name = generate_id_from_name_method(primary_key)
         content = {
-            "_primary_key": primary_key,
-            "_default_order_by": primary_key,
-            "key": key,
+            "default_order_by": primary_key,
             "name_from_child": name_from_child,
             "id_from_name": id_from_name,
             **content
@@ -55,10 +56,9 @@ def collection_resource(name, child_type, cache_max_size=0, **kwargs):
     return resource_property
 
 
-def generate_name_from_child_method(key):
-    field_name = key.name
+def generate_name_from_child_method(key_field_name):
     def name_from_child(self, child):
-        value = getattr(child, field_name)
+        value = getattr(child, key_field_name)
         return str(value)
 
     return name_from_child
