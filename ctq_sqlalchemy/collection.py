@@ -24,7 +24,7 @@ class CollectionType(type):
         key_prop = insp.get_property_by_column(key)
         key_field_name = key_prop.key
         name_from_child = generate_name_from_child_method(key_field_name)
-        id_from_name = generate_id_from_name_method(primary_key)
+        id_from_name = generate_id_from_name_method(primary_key, key_field_name)
         content = {
             "default_order_by": primary_key,
             "name_from_child": name_from_child,
@@ -64,7 +64,7 @@ def generate_name_from_child_method(key_field_name):
     return name_from_child
 
 
-def generate_id_from_name_method(primary_key):
+def generate_id_from_name_method(primary_key, key_field_name):
     assert len(primary_key) == 1
     field = primary_key[0]
     type_ = field.type
@@ -77,11 +77,9 @@ def generate_id_from_name_method(primary_key):
     else:
         NotImplementedError()
 
-    field_name = field.name
-
     def id_from_name(self, name):
         return {
-            field_name: cast(name),
+            key_field_name: cast(name),
         }
 
     return id_from_name
