@@ -84,6 +84,9 @@ class CollectionBase(object):
 
     def __delitem__(self, key):
         child = self[key]
+        self.delete(child)
+
+    def delete(self, child):
         child_path_names = resource_path_names(child)
         emit(child, "before-delete")
         try:
