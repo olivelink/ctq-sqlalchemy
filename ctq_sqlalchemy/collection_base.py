@@ -56,6 +56,11 @@ class CollectionBase(object):
                     pass
                 return child
             raise KeyError(key) from err
+
+    def __iter__(self):
+        stmt = self.select()
+        for item in self.execute(stmt):
+            yield item
     
     def add(self, _name=None, /, **kwargs):
         if _name is not None:
