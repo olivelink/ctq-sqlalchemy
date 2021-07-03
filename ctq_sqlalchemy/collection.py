@@ -15,20 +15,38 @@ class CollectionType(type):
 
         child_type = content["child_type"]
         assert child_type is not None
+
+        more_content = {}
+
         insp = sqlalchemy.inspect(child_type)
         primary_key = insp.primary_key
-        key = content.get("key", None)
-        if key is None:
-            assert len(primary_key) == 1
-            key = primary_key[0]
-        key_prop = insp.get_property_by_column(key)
-        key_field_name = key_prop.key
-        name_from_child = generate_name_from_child_method(key_field_name)
-        id_from_name = generate_id_from_name_method(primary_key, key_field_name)
+
+        if "default_order_by" not in content:
+            more_content["default_order_by"] = primary_key
+
+        # Get or detect a "key" column
+        key_column = content.get("key", None)
+        if key_column is None and len(primary_key == 1):
+            key_column = primary_key[0]
+            more_content["key"] = key_column
+
+        if key_column:
+            key_prop = insp.get_property_by_column(key_column)
+            key_attr_name = key_prop.key
+
+            # Create a name_from_child method
+            more_content["name_from_child"] = generate_name_from_child_method(key_attr_name)
+
+            # If there is only 1 primary key then generate id_from_name
+            if len(primary_key) == 1:
+                key_column = getattr(child_type, key_attr_name)
+                more_content["id_from_name"] = generate_id_from_name_method(
+                    key_column,
+                    key_attr_name
+                )
+
         content = {
-            "default_order_by": primary_key,
-            "name_from_child": name_from_child,
-            "id_from_name": id_from_name,
+            **more_content
             **content
         }
         return type.__new__(mcs, name, bases, content)
@@ -56,17 +74,15 @@ def collection_resource(name, child_type, cache_max_size=0, **kwargs):
     return resource_property
 
 
-def generate_name_from_child_method(key_field_name):
+def generate_name_from_child_method(key_attr_name):
     def name_from_child(self, child):
-        value = getattr(child, key_field_name)
+        value = getattr(child, key_attr_name)
         return str(value)
 
     return name_from_child
 
 
-def generate_id_from_name_method(primary_key, key_field_name):
-    assert len(primary_key) == 1
-    field = primary_key[0]
+def generate_id_from_name_method(field, key_field_name):
     type_ = field.type
     if isinstance(type_, sqlalchemy.types.String):
         cast = str
