@@ -28,6 +28,7 @@ class CollectionType(type):
         key_column = content.get("key", None)
         if key_column is None and len(primary_key) == 1:
             key_column = primary_key[0]
+            key_column = insp.get_property_by_column(key_column)
             more_content["key"] = key_column
 
         if key_column is not None:
