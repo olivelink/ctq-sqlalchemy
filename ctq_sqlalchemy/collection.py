@@ -31,8 +31,7 @@ class CollectionType(type):
             more_content["key"] = key_column
 
         if key_column:
-            key_prop = insp.get_property_by_column(key_column)
-            key_attr_name = key_prop.key
+            key_attr_name = key_column.key
 
             # Create a name_from_child method
             more_content["name_from_child"] = generate_name_from_child_method(key_attr_name)
@@ -42,12 +41,12 @@ class CollectionType(type):
                 key_column = getattr(child_type, key_attr_name)
                 more_content["id_from_name"] = generate_id_from_name_method(
                     key_column,
-                    key_attr_name
+                    key_attr_name,
                 )
 
         content = {
-            **more_content
-            **content
+            **more_content,
+            **content,
         }
         return type.__new__(mcs, name, bases, content)
 
