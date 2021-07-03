@@ -26,7 +26,7 @@ class CollectionType(type):
 
         # Get or detect a "key" column
         key_column = content.get("key", None)
-        if key_column is None and len(primary_key == 1):
+        if key_column is None and len(primary_key) == 1:
             key_column = primary_key[0]
             more_content["key"] = key_column
 
