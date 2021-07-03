@@ -30,7 +30,7 @@ class CollectionType(type):
             key_column = primary_key[0]
             more_content["key"] = key_column
 
-        if key_column:
+        if key_column is not None:
             key_attr_name = key_column.key
 
             # Create a name_from_child method
