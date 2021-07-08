@@ -6,6 +6,7 @@ from uuid import UUID
 
 import sqlalchemy_utils.types
 import sqlalchemy
+import dateutil.parser
 
 
 class CollectionType(type):
@@ -33,13 +34,13 @@ class CollectionType(type):
 
         if key_column is not None:
             key_attr_name = key_column.key
+            key_column = getattr(child_type, key_attr_name)
 
             # Create a name_from_child method
-            more_content["name_from_child"] = generate_name_from_child_method(key_attr_name)
+            more_content["name_from_child"] = generate_name_from_child_method(key_column, key_attr_name)
 
             # If there is only 1 primary key then generate id_from_name
             if len(primary_key) == 1:
-                key_column = getattr(child_type, key_attr_name)
                 more_content["id_from_name"] = generate_id_from_name_method(
                     key_column,
                     key_attr_name,
@@ -74,10 +75,14 @@ def collection_resource(name, child_type, cache_max_size=0, **kwargs):
     return resource_property
 
 
-def generate_name_from_child_method(key_attr_name):
+def generate_name_from_child_method(field, key_attr_name):
+    to_str = str
+    type_ = field.type
+    if isinstance(type_, sqlalchemy.types.DateTime):
+        to_str = lambda o: o.isoformat()
     def name_from_child(self, child):
         value = getattr(child, key_attr_name)
-        return str(value)
+        return to_str(value)
 
     return name_from_child
 
@@ -90,6 +95,8 @@ def generate_id_from_name_method(field, key_field_name):
         cast = UUID
     elif isinstance(type_, sqlalchemy.types.Integer):
         cast = int
+    elif isinstance(type_, sqlalchemy.types.DateTime):
+        cast = dateutil.parser.isoparse
     else:
         NotImplementedError()
 
