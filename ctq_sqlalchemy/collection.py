@@ -80,8 +80,8 @@ def generate_name_from_child_method(field, key_attr_name):
     type_ = field.type
     if isinstance(type_, sqlalchemy.types.DateTime):
         to_str = lambda o: o.isoformat()
-    def name_from_child(self, child):
-        value = getattr(child, key_attr_name)
+    def name_from_child(self, _child=None, /, **overrides):
+        value = overrides.get(key_attr_name) or getattr(_child, key_attr_name)
         return to_str(value)
 
     return name_from_child

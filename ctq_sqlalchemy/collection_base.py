@@ -82,6 +82,15 @@ class CollectionBase(object):
         emit(child, "after-add")
         return child
 
+    def merge(self, **kwargs):
+        name = self.name_from_child(**kwargs)
+        child = self.get(name)
+        if child is None:
+            return self.add(**kwargs)
+        else:
+            child.edit(**kwargs)
+            return child
+
     def __delitem__(self, key):
         child = self[key]
         self.delete(child)
