@@ -84,7 +84,7 @@ class CollectionBase(object):
 
     def merge(self, **kwargs):
         name = self.name_from_child(**kwargs)
-        child = self.get(name)
+        child = self.get_child(name)
         if child is None:
             return self.add(**kwargs)
         else:
