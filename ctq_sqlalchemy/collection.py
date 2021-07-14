@@ -82,6 +82,8 @@ def generate_name_from_child_method(field, key_attr_name):
         to_str = lambda o: o.isoformat()
     def name_from_child(self, _child=None, /, **overrides):
         value = overrides.get(key_attr_name) or getattr(_child, key_attr_name)
+        if value is None:  # Don't set names from None values. This is possible during init adding of an item.
+            return None
         return to_str(value)
 
     return name_from_child
