@@ -68,12 +68,12 @@ class CollectionBase(object):
                 **self.id_from_name(_name),
                 **kwargs
             }
-        emit(self, "before-add", {"kwargs": kwargs})
         child = self.child_type(**kwargs)
-        acquire(self).db_session.add(child)
         child.__parent__ = self
         name = self.name_from_child(child)
         child.__name__ = name
+        emit(child, "before-add")
+        acquire(self).db_session.add(child)
         child_path_names = resource_path_names(child)
         try:
             acquire(self).resource_cache_set(child_path_names, child)
