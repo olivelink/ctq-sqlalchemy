@@ -73,6 +73,8 @@ class CollectionBase(object):
         name = self.name_from_child(child)
         child.__name__ = name
         emit(child, "before-add")
+        name = self.name_from_child(child)  # recalculate name_from_child incase there are edits done during "before-add"
+        child.__name__ = name
         acquire(self).db_session.add(child)
         child_path_names = resource_path_names(child)
         try:
