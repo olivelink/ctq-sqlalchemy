@@ -17,7 +17,13 @@ class CollectionBase(object):
     def select_ordered(self):
         return (
             self.select()
-            .order_by(self.default_order_by)
+            .order_by(*self.default_order_by)
+        )
+
+    def select_count(self):
+        return (
+            sqlalchemy.select(sqlalchemy.func.count())
+            .select_from(self.select())
         )
 
     def execute(self, stmt):
