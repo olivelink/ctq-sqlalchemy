@@ -12,6 +12,10 @@ import dateutil.parser
 class CollectionType(type):
 
     def __new__(mcs, name, bases, content):
+        for base in bases:
+            if issubclass(base, CollectionBase):
+                return type.__new__(mcs, name, bases, content)
+
         bases = (*bases, CollectionBase)
 
         child_type = content["child_type"]
