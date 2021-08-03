@@ -26,6 +26,9 @@ class CollectionBase(object):
         wrapped_results = CollectionResultWrapper(result, self)
         return wrapped_results
 
+    def parent_for_child(self, child):
+        return self
+
     def get_child(self, name, default=None):
         id = self.id_from_name(name)
         stmt = (
@@ -68,20 +71,43 @@ class CollectionBase(object):
                 **self.id_from_name(_name),
                 **kwargs
             }
+
         child = self.child_type(**kwargs)
-        child.__parent__ = self
+
+        # Set parent
+        parent = self.parent_for_child(child)
+        if parent:
+            child.__parent__ = parent
+
+        # Set name
         name = self.name_from_child(child)
-        child.__name__ = name
-        emit(child, "before-add")
+        if name:
+            child.__name__ = name
+
+        # Emit event if there is a parent
+        if parent:
+            emit(child, "before-add")
+
+        # Reset name
         name = self.name_from_child(child)  # recalculate name_from_child incase there are edits done during "before-add"
-        child.__name__ = name
+        if name:
+            child.__name__ = name
+
+        # add to session
         acquire(self).db_session.add(child)
-        child_path_names = resource_path_names(child)
-        try:
-            acquire(self).resource_cache_set(child_path_names, child)
-        except AttributeError:
-            pass
-        emit(child, "after-add")
+
+        # Set cache if there is a parent and a name
+        if parent and name is not None:
+            child_path_names = resource_path_names(child)
+            try:
+                acquire(self).resource_cache_set(child_path_names, child)
+            except AttributeError:
+                pass
+        
+        # Emit event if there is a parent
+        if parent:
+            emit(child, "after-add")
+
         return child
 
     def merge(self, **kwargs):
@@ -166,18 +192,30 @@ class CollectionResultWrapper(object):
 
     def child_from_row(self, row):
         child = row[0]
-        child.__parent__ = self.collection
+
+        # Set parent
+        parent = self.collection.parent_for_child(child)
+        if parent:
+            child.__parent__ = parent
+
+        # Get a name
         name = self.name_from_child(child)
-        if name is not None:
+        child_path_names = None
+
+        # Check cache
+        if parent and name is not None:
             child_path_names = self.collection_path_names + (name,)
             cached_child = self.cache_get(child_path_names)
             if cached_child is not None:
                 return cached_child
-            child.__name__= name
+
+        # set name and set cache
+        if name:
+            child.__name__ = name
+        if child_path_names is not None:
             self.cache_set(child_path_names, child)
-            return child
-        else:
-            return child
+
+        return child
 
     def cache_get(self, key):
         return None
