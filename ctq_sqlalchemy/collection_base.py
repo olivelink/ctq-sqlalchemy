@@ -78,7 +78,7 @@ class CollectionBase(object):
         child.__parent__ = self
         name = self.name_from_child(child)
         child.__name__ = name
-        emit(child, "before-add")
+        emit(child, "before-add", {"kwargs": kwargs})
         name = self.name_from_child(child)  # recalculate name_from_child incase there are edits done during "before-add"
         child.__name__ = name
         acquire(self).db_session.add(child)
@@ -87,7 +87,7 @@ class CollectionBase(object):
             acquire(self).resource_cache_set(child_path_names, child)
         except AttributeError:
             pass
-        emit(child, "after-add")
+        emit(child, "after-add", {"kwargs": kwargs})
         return child
 
     def merge(self, **kwargs):
