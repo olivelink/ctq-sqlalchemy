@@ -20,11 +20,11 @@ class CollectionBase(object):
             .order_by(*self.default_order_by)
         )
 
-    def select_count(self):
-        return (
-            sqlalchemy.select(sqlalchemy.func.count())
-            .select_from(self.select())
-        )
+    def count(self, stmt=None):
+        if stmt is None:
+            stmt = self.select()
+        stmt = sqlalchemy.select(sqlalchemy.func.count()).select_from(stmt.subquery())
+        return acquire(self).db_session.execute(stmt).scalar()
 
     def execute(self, stmt):
         session = acquire(self).db_session
