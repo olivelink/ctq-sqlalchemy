@@ -19,4 +19,5 @@ setup(name='ctq-sqlalchemy',
           'ctq',
           'sqlalchemy',
           'sqlalchemy_utils',
+          'python-dateutil',
       ])
