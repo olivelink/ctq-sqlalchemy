@@ -20,11 +20,11 @@ class CollectionBase(object):
             .order_by(*self.default_order_by)
         )
 
-    def select_count(self):
-        return (
-            sqlalchemy.select(sqlalchemy.func.count())
-            .select_from(self.select())
-        )
+    def count(self, stmt=None):
+        if stmt is None:
+            stmt = self.select()
+        stmt = sqlalchemy.select(sqlalchemy.func.count()).select_from(stmt.subquery())
+        return acquire(self).db_session.execute(stmt).scalar()
 
     def execute(self, stmt):
         session = acquire(self).db_session
@@ -71,8 +71,11 @@ class CollectionBase(object):
 
     def __iter__(self):
         stmt = self.select()
-        for item in self.execute(stmt):
-            yield item
+        stmt = stmt.execution_options(stream_results=True)
+        result = self.execute(stmt)
+        for partition in result.partitions(1000):
+            for item in partition:
+                yield item
     
     def add(self, _name=None, /, **kwargs):
         if _name is not None:
@@ -95,7 +98,7 @@ class CollectionBase(object):
 
         # Emit event if there is a parent
         if parent:
-            emit(child, "before-add")
+            emit(child, "before-add", {"kwargs": kwargs})
 
         # Reset name
         name = self.name_from_child(child)  # recalculate name_from_child incase there are edits done during "before-add"
@@ -115,7 +118,7 @@ class CollectionBase(object):
         
         # Emit event if there is a parent
         if parent:
-            emit(child, "after-add")
+            emit(child, "after-add", {"kwargs": kwargs})
 
         return child
 
@@ -198,6 +201,15 @@ class CollectionResultWrapper(object):
         if row is None:
             return None
         return self.child_from_row(row)
+
+    def partitions(self, size):
+        for partition in self.inner_result.partitions(size):
+            yield self.iter_from_partition(partition)
+
+    def iter_from_partition(self, partition):
+        for row in partition:
+            child = self.child_from_row(row)
+            yield child
 
     def child_from_row(self, row):
         child = row[0]
