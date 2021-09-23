@@ -36,7 +36,10 @@ class CollectionBase(object):
         return self
 
     def get_child(self, name, default=None):
-        id = self.id_from_name(name)
+        try:
+            id = self.id_from_name(name)
+        except (ValueError, TypeError):
+            return default
         stmt = (
             self.select()
             .filter_by(**id)
