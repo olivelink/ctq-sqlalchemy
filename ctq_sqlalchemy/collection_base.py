@@ -2,9 +2,10 @@ from sqlalchemy.sql.schema import PrimaryKeyConstraint
 from ctq import acquire
 from ctq import resource_path_names
 from ctq import emit
+from uuid import UUID
 
 import sqlalchemy
-
+import datetime
 
 class CollectionBase(object):
 
@@ -50,6 +51,17 @@ class CollectionBase(object):
         return result
 
     def __getitem__(self, key):
+
+        if not isinstance(key, str):
+            # Only cast the nice things
+            if not (
+                isinstance(key, UUID)
+                or isinstance(key, int)
+                or isinstance(key, datetime.date)
+            ):
+                raise KeyError()
+            key = str(key)
+
         try:
             return super().__getitem__(key)
         except (KeyError, AttributeError) as err:
