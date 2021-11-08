@@ -110,7 +110,7 @@ class CollectionBase(object):
 
         # Emit event if there is a parent
         if parent:
-            emit(child, "before-add", {"kwargs": kwargs})
+            emit("before-add", {"kwargs": kwargs}, target=child)
 
         # Reset name
         name = self.name_from_child(child)  # recalculate name_from_child incase there are edits done during "before-add"
@@ -130,7 +130,7 @@ class CollectionBase(object):
         
         # Emit event if there is a parent
         if parent:
-            emit(child, "after-add", {"kwargs": kwargs})
+            emit("after-add", {"kwargs": kwargs}, target=child)
 
         return child
 
@@ -149,17 +149,17 @@ class CollectionBase(object):
 
     def delete(self, child):
         child_path_names = resource_path_names(child)
-        emit(child, "before-delete")
+        emit("before-delete", target=child)
         try:
             acquire(self).resource_cache_set(child_path_names, None)
         except AttributeError:
             pass
         acquire(self).db_session.delete(child)
-        emit(self, "after-delete", {"path": child_path_names})
+        emit("after-delete", {"path": child_path_names})
     
     def edit(self, child, **kwargs):
         old_name = self.name_from_child(child)
-        emit(child, "before-edit", {"kwargs": kwargs})
+        emit("before-edit", {"kwargs": kwargs}, target=child)
         changes = {}
         for key, value in kwargs.items():
             old_value = getattr(child, key)
@@ -181,13 +181,18 @@ class CollectionBase(object):
                 resource_cache_set(path_names, child)
             except AttributeError:
                 pass
-            emit(child, "moved", {
-                "old_path": old_path_names,
-            })
-        emit(child, "after-edit", {
-            "kwargs": kwargs,
-            "changes": changes,
-        })
+            emit(
+                "moved",
+                {"old_path": old_path_names},
+                target=child,
+            )
+        emit(
+            "after-edit",
+            {
+                "kwargs": kwargs,
+                "changes": changes,
+            }
+            target=child,)
     
     def rename(self, child, name):
         id = self.id_from_name(name)
