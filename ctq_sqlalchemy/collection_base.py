@@ -191,8 +191,9 @@ class CollectionBase(object):
             {
                 "kwargs": kwargs,
                 "changes": changes,
-            }
-            target=child,)
+            },
+            target=child
+        )
     
     def rename(self, child, name):
         id = self.id_from_name(name)
